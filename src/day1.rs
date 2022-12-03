@@ -1,5 +1,6 @@
 use std::io::stdin;
 
+#[allow(dead_code)]
 pub fn run() {
     let mut list = stdin()
         .lines()
