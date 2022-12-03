@@ -1,5 +1,8 @@
 mod day1;
+mod day2;
 
 fn main() {
-    day1::run();
+    println!("Enter input:");
+
+    day2::run();
 }
