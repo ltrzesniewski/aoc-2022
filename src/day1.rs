@@ -1,7 +1,7 @@
 use std::io::stdin;
 
-pub fn part1() {
-    let groups = stdin()
+pub fn run() {
+    let mut list = stdin()
         .lines()
         .map(|line| line.unwrap().parse::<i32>())
         .fold(vec![0], |mut list, item| {
@@ -13,7 +13,10 @@ pub fn part1() {
             list
         });
 
-    let max = groups.iter().max().unwrap();
-
+    let max = list.iter().max().unwrap();
     println!("Max calories: {}", max);
+
+    list.sort_unstable_by(|a, b| b.cmp(a));
+    let first3 = list.iter().take(3).sum::<i32>();
+    println!("Calories of first 3 elves: {}", first3);
 }
