@@ -15,12 +15,20 @@ pub fn run() {
     let result = input.iter().filter(|i| i.is_fully_contained()).count();
 
     println!("Result (part 1): {}", result);
+
+    let result = input.iter().filter(|i| i.has_overlap()).count();
+
+    println!("Result (part 2): {}", result);
 }
 
 impl InputItem {
     pub fn is_fully_contained(&self) -> bool {
         self.0.start() <= self.1.start() && self.0.end() >= self.1.end()
             || self.1.start() <= self.0.start() && self.1.end() >= self.0.end()
+    }
+
+    pub fn has_overlap(&self) -> bool {
+        self.0.end() >= self.1.start() && self.0.start() <= self.1.end()
     }
 }
 
