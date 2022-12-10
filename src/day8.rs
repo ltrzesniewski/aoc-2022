@@ -9,6 +9,9 @@ pub fn run() {
 
     let result = input.get_visible_trees();
     println!("Result (part 1): {result}");
+
+    let result = input.get_best_view_score();
+    println!("Result (part 2): {result}");
 }
 
 fn parse(input: &Vec<String>) -> Field {
@@ -63,6 +66,43 @@ impl Field {
         }
 
         visible.len()
+    }
+
+    fn get_best_view_score(&self) -> i32 {
+        let mut best = 0;
+
+        for x in 1..(self.width() - 1) {
+            for y in 1..(self.height() - 1) {
+                let mut score = 1;
+                let max = self.value(x, y).unwrap();
+
+                for delta in [(-1, 0), (1, 0), (0, -1), (0, 1)] {
+                    let (mut dx, mut dy) = (x, y);
+                    let mut distance = 0;
+
+                    loop {
+                        dx = (dx as isize + delta.0) as usize;
+                        dy = (dy as isize + delta.1) as usize;
+
+                        match self.value(dx, dy) {
+                            None => break,
+                            Some(value) => {
+                                distance += 1;
+                                if value >= max {
+                                    break;
+                                }
+                            }
+                        }
+                    }
+
+                    score *= distance;
+                }
+
+                best = best.max(score);
+            }
+        }
+
+        best
     }
 
     fn width(&self) -> usize {
