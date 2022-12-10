@@ -27,12 +27,20 @@ pub fn run() {
     let input = get_input();
 
     let mut stacks = input.stacks.clone();
-    for m in input.moves {
+    for m in input.moves.iter() {
         stacks.apply_move(&m);
     }
 
     let result = stacks.get_top_crates();
     println!("Result (part 1): {result}");
+
+    let mut stacks = input.stacks.clone();
+    for m in input.moves.iter() {
+        stacks.apply_move_multi(&m);
+    }
+
+    let result = stacks.get_top_crates();
+    println!("Result (part 2): {result}");
 }
 
 fn get_input() -> Input {
@@ -97,6 +105,11 @@ impl Stacks {
         }
     }
 
+    pub fn apply_move_multi(&mut self, mv: &Move) {
+        let items = self.0.get_mut(mv.from - 1).unwrap().pop_multi(mv.count);
+        self.0.get_mut(mv.to - 1).unwrap().push_multi(&items);
+    }
+
     pub fn get_top_crates(&self) -> String {
         self.0
             .iter()
@@ -116,8 +129,14 @@ impl CrateStack {
     pub fn pop(&mut self) -> Crate {
         self.0.pop().unwrap()
     }
+    pub fn pop_multi(&mut self, count: usize) -> Vec<Crate> {
+        self.0.split_off(self.0.len() - count)
+    }
     pub fn push(&mut self, item: Crate) {
         self.0.push(item);
+    }
+    pub fn push_multi(&mut self, items: &[Crate]) {
+        self.0.extend_from_slice(items)
     }
     pub fn top(&self) -> Option<Crate> {
         self.0.last().copied()
