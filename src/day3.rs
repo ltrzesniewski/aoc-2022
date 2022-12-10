@@ -1,9 +1,9 @@
+use crate::common::get_input_lines;
 use std::collections::HashSet;
-use std::io::stdin;
 
 #[allow(dead_code)]
 pub fn run() {
-    let input = stdin().lines().map(|i| i.unwrap()).collect::<Vec<_>>();
+    let input = get_input_lines();
 
     let result = input
         .iter()

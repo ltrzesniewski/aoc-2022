@@ -1,10 +1,10 @@
-use std::io::stdin;
+use crate::common::get_input_lines;
 
 #[allow(dead_code)]
 pub fn run() {
-    let mut list = stdin()
-        .lines()
-        .map(|line| line.unwrap().parse::<i32>())
+    let mut list = get_input_lines()
+        .iter()
+        .map(|line| line.parse::<i32>())
         .fold(vec![0], |mut list, item| {
             if let Ok(value) = item {
                 *list.last_mut().unwrap() += value;

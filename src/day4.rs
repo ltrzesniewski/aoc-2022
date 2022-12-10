@@ -1,15 +1,15 @@
+use crate::common::get_input_lines;
 use lazy_static::lazy_static;
 use regex::Regex;
-use std::io::stdin;
 use std::ops::RangeInclusive;
 
 struct InputItem(RangeInclusive<i32>, RangeInclusive<i32>);
 
 #[allow(dead_code)]
 pub fn run() {
-    let input = stdin()
-        .lines()
-        .map(|i| i.unwrap().as_str().into())
+    let input = get_input_lines()
+        .iter()
+        .map(|i| i.as_str().into())
         .collect::<Vec<InputItem>>();
 
     let result = input.iter().filter(|i| i.is_fully_contained()).count();
