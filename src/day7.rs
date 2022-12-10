@@ -33,34 +33,36 @@ pub fn run() {
 
     let result = part1(&input);
     println!("Result (part 1): {result}");
+
+    let result = part2(&input);
+    println!("Result (part 2): {result}");
 }
 
 fn part1(fs: &FileSystem) -> usize {
-    const LIMIT: usize = 100000;
     let mut result = 0;
 
-    fn get_size(fs: &FileSystem, dir: DirHandle, acc: &mut usize) -> usize {
-        let mut size = 0;
-
-        for entry in fs.iter_dir(dir) {
-            match entry {
-                Entry::File(file) => {
-                    size += file.size;
-                }
-                Entry::Dir(dir) => {
-                    size += get_size(fs, dir.handle(), acc);
-                }
-            }
+    fs.traverse_get_size(|size| {
+        if size <= 100000 {
+            result += size;
         }
+    });
 
-        if size <= LIMIT {
-            *acc += size;
+    result
+}
+
+fn part2(fs: &FileSystem) -> usize {
+    let used_size = fs.traverse_get_size(|_| {});
+    let unused_size = 70000000 - used_size;
+    let required_size = 30000000 - unused_size;
+
+    let mut result = usize::MAX;
+
+    fs.traverse_get_size(|size| {
+        if size >= required_size && size < result {
+            result = size;
         }
+    });
 
-        size
-    }
-
-    get_size(fs, fs.get_root(), &mut result);
     result
 }
 
@@ -174,6 +176,32 @@ impl FileSystem {
             .iter()
             .copied()
             .map(|i| self.entries.get(i).unwrap())
+    }
+
+    fn traverse_get_size<DirCallback: FnMut(usize)>(&self, mut callback: DirCallback) -> usize {
+        fn exec<DirCallback: FnMut(usize)>(
+            fs: &FileSystem,
+            dir: DirHandle,
+            callback: &mut DirCallback,
+        ) -> usize {
+            let mut size = 0;
+
+            for entry in fs.iter_dir(dir) {
+                match entry {
+                    Entry::File(file) => {
+                        size += file.size;
+                    }
+                    Entry::Dir(dir) => {
+                        size += exec(fs, dir.handle(), callback);
+                    }
+                }
+            }
+
+            callback(size);
+            size
+        }
+
+        exec(self, self.get_root(), &mut callback)
     }
 }
 
