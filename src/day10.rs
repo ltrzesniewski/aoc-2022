@@ -16,6 +16,9 @@ pub fn run() {
 
     let result = part1(&input);
     println!("Result (part 1): {result}");
+
+    println!("Result (part 2):");
+    println!("{}", part2(&input));
 }
 
 fn part1(input: &[Instruction]) -> i32 {
@@ -54,6 +57,49 @@ fn part1(input: &[Instruction]) -> i32 {
     }
 
     result
+}
+
+fn part2(input: &[Instruction]) -> String {
+    let mut x = 1;
+    let mut cycle_counter = 0;
+    let mut input_iter = input.iter();
+
+    let mut current_instruction = *input_iter.next().unwrap();
+    let mut current_cycles_left = current_instruction.cycle_count();
+
+    let mut output = String::new();
+
+    loop {
+        cycle_counter += 1;
+        current_cycles_left -= 1;
+
+        let col = cycle_counter % 40;
+        let sprite = x..=(x + 2);
+
+        output += if sprite.contains(&col) { "#" } else { "." };
+
+        if col == 0 {
+            output += "\n";
+        }
+
+        if current_cycles_left > 0 {
+            continue;
+        }
+
+        match current_instruction {
+            Instruction::Noop => {}
+            Instruction::AddX(value) => x += value,
+        }
+
+        match input_iter.next() {
+            None => break,
+            Some(instruction) => current_instruction = *instruction,
+        }
+
+        current_cycles_left = current_instruction.cycle_count()
+    }
+
+    output
 }
 
 impl Instruction {
