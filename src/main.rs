@@ -2,6 +2,7 @@ mod common;
 mod day1;
 mod day10;
 mod day11;
+mod day11b;
 mod day2;
 mod day3;
 mod day4;
@@ -12,5 +13,5 @@ mod day8;
 mod day9;
 
 fn main() {
-    day11::run();
+    day11b::run();
 }
