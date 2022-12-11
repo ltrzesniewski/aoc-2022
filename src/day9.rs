@@ -24,8 +24,7 @@ enum Delta {
 struct RelativePosition(Delta, Delta);
 
 struct Simulation {
-    head: Position,
-    tail: Position,
+    knots: Vec<Position>,
     visited: HashSet<Position>,
 }
 
@@ -36,12 +35,15 @@ pub fn run() {
         .map(|i| i.parse().unwrap())
         .collect::<Vec<Move>>();
 
-    let result = part1(&input);
+    let result = simulate(2, &input);
     println!("Result (part 1): {result}");
+
+    let result = simulate(10, &input);
+    println!("Result (part 2): {result}");
 }
 
-fn part1(input: &[Move]) -> usize {
-    let mut sim = Simulation::new();
+fn simulate(knots: usize, input: &[Move]) -> usize {
+    let mut sim = Simulation::new(knots);
 
     for m in input {
         for _ in 0..(m.1) {
@@ -53,29 +55,37 @@ fn part1(input: &[Move]) -> usize {
 }
 
 impl Simulation {
-    fn new() -> Simulation {
+    fn new(knots: usize) -> Simulation {
         let mut sim = Simulation {
-            head: Position::default(),
-            tail: Position::default(),
+            knots: Vec::with_capacity(knots),
             visited: HashSet::new(),
         };
 
-        sim.visited.insert(sim.tail);
+        for _ in 0..knots {
+            sim.knots.push(Position::default())
+        }
+
+        sim.visited.insert(Position::default());
         sim
     }
 
     fn move_head(&mut self, dir: Direction) {
-        self.head = dir.move_by_one(self.head);
-        self.move_tail();
-    }
+        self.knots[0] = dir.move_by_one(self.knots[0]);
 
-    fn move_tail(&mut self) {
-        if self.tail.touches(self.head) {
-            return;
+        for i in 1..self.knots.len() {
+            self.move_knot(i);
         }
 
-        self.tail = self.tail.move_towards(self.head);
-        self.visited.insert(self.tail);
+        self.visited.insert(self.knots.last().copied().unwrap());
+    }
+
+    fn move_knot(&mut self, i: usize) {
+        let previous = self.knots[i - 1];
+        let knot = self.knots.get_mut(i).unwrap();
+
+        if !knot.touches(previous) {
+            *knot = knot.move_towards(previous);
+        }
     }
 
     fn visited_pos_count(&self) -> usize {
