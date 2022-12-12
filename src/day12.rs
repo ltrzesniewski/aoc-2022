@@ -35,6 +35,9 @@ pub fn run() {
 
     let result = field.find_shortest_path_length();
     println!("Result (part 1): {result}");
+
+    let result = field.find_hiking_trail_length();
+    println!("Result (part 2): {result}");
 }
 
 impl Field {
@@ -99,15 +102,59 @@ impl Field {
                 return dist[u.index()];
             }
 
-            for v in self.reachable_neighbors(u).filter(|v| queue.contains(v)) {
+            for v in self
+                .neighbors(u)
+                .filter(|v| self.elevation(u).can_move_to(self.elevation(*v)) && queue.contains(v))
+            {
                 let alt = dist[u.index()] + 1;
-                if alt < dist[v.index()] {
-                    dist[v.index()] = alt;
-                }
+                let vd = dist.get_mut(v.index()).unwrap();
+                *vd = alt.min(*vd);
             }
         }
 
         panic!("No path found")
+    }
+
+    fn find_hiking_trail_length(&self) -> usize {
+        let mut dist = (0..self.squares.len())
+            .map(|_| usize::MAX)
+            .collect::<Vec<_>>();
+
+        let mut queue = (0..self.squares.len())
+            .map(|i| Pos::from_index(i))
+            .collect::<HashSet<_>>();
+
+        dist[self.end.index()] = 0;
+        let mut min_dist = usize::MAX;
+
+        while !queue.is_empty() {
+            let u = queue
+                .iter()
+                .min_by_key(|pos| dist[pos.index()])
+                .copied()
+                .unwrap();
+
+            queue.remove(&u);
+
+            if dist[u.index()] == usize::MAX {
+                break;
+            }
+
+            if self.elevation(u) == Elevation(0) {
+                min_dist = min_dist.min(dist[u.index()]);
+            }
+
+            for v in self
+                .neighbors(u)
+                .filter(|v| self.elevation(*v).can_move_to(self.elevation(u)) && queue.contains(v))
+            {
+                let alt = dist[u.index()] + 1;
+                let vd = dist.get_mut(v.index()).unwrap();
+                *vd = alt.min(*vd);
+            }
+        }
+
+        min_dist
     }
 
     fn coord(&self, pos: Pos) -> Coord {
@@ -143,54 +190,15 @@ impl Field {
         }
     }
 
-    fn reachable_neighbor(&self, pos: Pos, dir: Direction) -> Option<Pos> {
-        self.neighbor(pos, dir)
-            .filter(|n| self.elevation(pos).can_move_to(self.elevation(*n)))
-    }
-
-    fn reachable_neighbors(&self, square: Pos) -> ReachableNeighborsIter {
-        ReachableNeighborsIter::new(self, square)
-    }
-}
-
-struct ReachableNeighborsIter<'a> {
-    field: &'a Field,
-    pos: Pos,
-    dir: Option<Direction>,
-}
-
-impl<'a> ReachableNeighborsIter<'a> {
-    fn new(field: &'a Field, pos: Pos) -> ReachableNeighborsIter<'a> {
-        ReachableNeighborsIter {
-            field,
-            pos,
-            dir: Some(Direction::Up),
-        }
-    }
-}
-
-impl<'a> Iterator for ReachableNeighborsIter<'a> {
-    type Item = Pos;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        loop {
-            if let Some(dir) = self.dir {
-                let result = self.field.reachable_neighbor(self.pos, dir);
-
-                self.dir = match dir {
-                    Direction::Up => Some(Direction::Down),
-                    Direction::Down => Some(Direction::Left),
-                    Direction::Left => Some(Direction::Right),
-                    Direction::Right => None,
-                };
-
-                if result.is_some() {
-                    return result;
-                }
-            } else {
-                return None;
-            }
-        }
+    fn neighbors(&self, square: Pos) -> impl Iterator<Item = Pos> + '_ {
+        [
+            Direction::Up,
+            Direction::Down,
+            Direction::Left,
+            Direction::Right,
+        ]
+        .into_iter()
+        .filter_map(move |dir| self.neighbor(square, dir))
     }
 }
 
