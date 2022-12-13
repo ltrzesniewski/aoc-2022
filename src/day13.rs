@@ -19,6 +19,9 @@ pub fn run() {
 
     let result = part1(&values);
     println!("Result (part 1): {result}");
+
+    let result = part2(&values);
+    println!("Result (part 2): {result}");
 }
 
 fn part1(values: &[Value]) -> usize {
@@ -38,6 +41,23 @@ fn part1(values: &[Value]) -> usize {
     }
 
     result
+}
+
+fn part2(values: &[Value]) -> usize {
+    let mut values = values.iter().cloned().collect::<Vec<_>>();
+
+    let dividers = ["[[2]]", "[[6]]"]
+        .iter()
+        .map(|i| i.parse().unwrap())
+        .collect::<Vec<Value>>();
+
+    values.extend(dividers.clone());
+    values.sort_unstable();
+
+    dividers
+        .iter()
+        .map(|d| values.binary_search(d).unwrap() + 1)
+        .fold(1, |a, i| a * i)
 }
 
 impl FromStr for Value {
