@@ -19,7 +19,7 @@ struct Segment(Point, Point);
 #[derive(Copy, Clone)]
 struct Bounds(Point, Point);
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, PartialEq)]
 enum Tile {
     Void,
     Empty,
@@ -30,6 +30,7 @@ enum Tile {
 struct Cave {
     tiles: Vec<Tile>,
     bounds: Bounds,
+    floor: bool,
 }
 
 #[allow(dead_code)]
@@ -40,14 +41,18 @@ pub fn run() {
         .map(|i| i.parse().unwrap())
         .collect::<Vec<Line>>();
 
-    let mut cave = Cave::new(&lines);
-
-    let result = part1(&mut cave);
+    let mut cave = Cave::new(&lines, false);
+    let result = simulate(&mut cave);
     println!("{cave}");
     println!("Result (part 1): {result}");
+
+    let mut cave = Cave::new(&lines, true);
+    let result = simulate(&mut cave);
+    println!("{cave}");
+    println!("Result (part 2): {result}");
 }
 
-fn part1(cave: &mut Cave) -> usize {
+fn simulate(cave: &mut Cave) -> usize {
     let mut count = 0;
 
     loop {
@@ -159,10 +164,21 @@ impl Default for Bounds {
 }
 
 impl Cave {
-    fn new(lines: &[Line]) -> Cave {
-        let bounds = Bounds::from_lines(lines).extend(SAND_ORIGIN);
+    fn new(lines: &[Line], floor: bool) -> Cave {
+        let mut bounds = Bounds::from_lines(lines).extend(SAND_ORIGIN);
+
+        if floor {
+            bounds = bounds.extend(bounds.1.delta(0, 1));
+            bounds = bounds.extend(SAND_ORIGIN.delta(bounds.height() as isize, 0));
+            bounds = bounds.extend(SAND_ORIGIN.delta(-(bounds.height() as isize), 0));
+        }
+
         let tiles = vec![Tile::Empty; bounds.width() * bounds.height()];
-        let mut cave = Cave { tiles, bounds };
+        let mut cave = Cave {
+            tiles,
+            bounds,
+            floor,
+        };
 
         for line in lines {
             cave.set_rock_line(line);
@@ -190,6 +206,8 @@ impl Cave {
     fn get(&self, p: Point) -> Tile {
         if let Some(index) = self.to_index(p) {
             self.tiles[index]
+        } else if self.floor {
+            Tile::Rock
         } else {
             Tile::Void
         }
@@ -202,6 +220,10 @@ impl Cave {
 
     fn add_unit_of_sand(&mut self) -> bool {
         let mut pt = SAND_ORIGIN;
+
+        if self.get(pt) != Tile::Empty {
+            return false;
+        }
 
         'down: loop {
             let next = [pt.delta(0, 1), pt.delta(-1, 1), pt.delta(1, 1)];
@@ -261,6 +283,12 @@ impl Point {
             (self.x as isize + x) as usize,
             (self.y as isize + y) as usize,
         )
+    }
+}
+
+impl PartialEq for Point {
+    fn eq(&self, other: &Self) -> bool {
+        self.x == other.x && self.y == other.y
     }
 }
 
