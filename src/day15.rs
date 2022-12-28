@@ -32,8 +32,11 @@ pub fn run() {
 
     let report = Report { items };
 
-    let result = part1(&report, 2000000);
+    let result = part1(&report, 2_000_000);
     println!("Result (part 1): {result}");
+
+    let result = part2(&report, 4_000_000);
+    println!("Result (part 2): {result}");
 }
 
 fn part1(report: &Report, line_index: i64) -> usize {
@@ -56,6 +59,64 @@ fn part1(report: &Report, line_index: i64) -> usize {
     }
 
     coverage.into_iter().filter(|&i| i).count()
+}
+
+fn part2(report: &Report, search_space: usize) -> usize {
+    let coverage_range = 0..=(search_space as i64);
+    let mut coverages = vec![];
+
+    for y in coverage_range.clone() {
+        coverages.clear();
+
+        for item in report.items.iter() {
+            if let Some(range) = item.coverage_x_bounds_at_y(y) {
+                if let Some(range) = intersect(&range, &coverage_range) {
+                    coverages.push(range);
+                }
+            }
+        }
+
+        'outer: for i in (0..coverages.len()).rev() {
+            for j in 0..i {
+                if let Some(merged) = union(&coverages[i], &coverages[j]) {
+                    coverages[j] = merged;
+                    coverages.remove(i);
+                    continue 'outer;
+                }
+            }
+        }
+
+        if coverages.len() == 2 {
+            let (&end, &start) = if coverages[0].end() < coverages[1].start() {
+                (coverages[0].end(), coverages[1].start())
+            } else {
+                (coverages[1].end(), coverages[0].start())
+            };
+
+            if start == end + 2 {
+                let x = end + 1;
+                return (x as usize) * 4_000_000 + (y as usize);
+            }
+        }
+    }
+
+    panic!("Not found");
+}
+
+fn intersect(a: &RangeInclusive<i64>, b: &RangeInclusive<i64>) -> Option<RangeInclusive<i64>> {
+    if a.end() < b.start() || a.start() > b.end() {
+        None
+    } else {
+        Some(*a.start().max(b.start())..=*a.end().min(b.end()))
+    }
+}
+
+fn union(a: &RangeInclusive<i64>, b: &RangeInclusive<i64>) -> Option<RangeInclusive<i64>> {
+    if a.end() + 1 < *b.start() || *a.start() > b.end() + 1 {
+        None
+    } else {
+        Some(*a.start().min(b.start())..=*a.end().max(b.end()))
+    }
 }
 
 impl Report {
