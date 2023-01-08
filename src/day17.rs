@@ -7,6 +7,7 @@ enum Direction {
     Right,
 }
 
+#[derive(Clone)]
 struct Pushes(Vec<Direction>);
 
 #[derive(Copy, Clone, Eq, PartialEq)]
@@ -22,42 +23,127 @@ struct Cave {
     lines: Vec<Line>,
 }
 
+struct Puzzle {
+    cave: Cave,
+    pushes: Pushes,
+    block_count: usize,
+    push_count: usize,
+}
+
 #[allow(dead_code)]
 pub fn run() {
     let pushes = Pushes::parse(get_input_lines().iter().next().unwrap());
 
-    let result = part1(&pushes);
+    let result = part1(&pushes, 2022);
     println!("Result (part 1): {result}");
+
+    let result = part2(&pushes, 1000000000000);
+    println!("Result (part 2): {result}");
 }
 
-fn part1(pushes: &Pushes) -> usize {
-    let mut cave = Cave::new();
-    let mut block_count = 0;
-    let mut push_count = 0;
+fn part1(pushes: &Pushes, iterations: usize) -> usize {
+    let mut puzzle = Puzzle::new(pushes.clone());
 
     loop {
-        let mut block = Block::new(block_count, cave.height() + 3);
-        block_count += 1;
+        puzzle.drop_block();
 
-        loop {
-            let next_push = pushes.get(push_count);
-            push_count += 1;
-
-            block = block.push(next_push, &cave);
-            if let Ok(fallen) = block.fall(&cave) {
-                block = fallen;
-            } else {
-                cave.merge_block(&block);
-                break;
-            }
-        }
-
-        if block_count == 2022 {
+        if puzzle.block_count == iterations {
             break;
         }
     }
 
-    return cave.height();
+    return puzzle.cave.height();
+}
+
+fn part2(pushes: &Pushes, iterations: usize) -> usize {
+    let mut puzzle = Puzzle::new(pushes.clone());
+
+    #[derive(Copy, Clone, Default)]
+    struct Status {
+        count: usize,
+        height: usize,
+        blocks: usize,
+    }
+
+    let mut combinations = vec![Status::default(); puzzle.combination_count()];
+
+    loop {
+        let status = &mut combinations[puzzle.current_combination()];
+
+        puzzle.drop_block();
+
+        if puzzle.block_count == iterations {
+            return puzzle.cave.height();
+        }
+
+        status.count += 1;
+
+        let prev_height = status.height;
+        status.height = puzzle.cave.height();
+
+        let prev_blocks = status.blocks;
+        status.blocks = puzzle.block_count;
+
+        if status.count == 3 && status.height > prev_height {
+            let diff_height = status.height - prev_height;
+            let diff_blocks = status.blocks - prev_blocks;
+
+            let needed_blocks = iterations - puzzle.block_count;
+            let additional_iterations = needed_blocks / diff_blocks;
+
+            let additional_blocks = additional_iterations * diff_blocks;
+            let additional_height = additional_iterations * diff_height;
+
+            loop {
+                let blocks = puzzle.block_count + additional_blocks;
+
+                if blocks == iterations {
+                    return puzzle.cave.height() + additional_height;
+                }
+
+                puzzle.drop_block();
+            }
+        }
+    }
+}
+
+impl Puzzle {
+    fn new(pushes: Pushes) -> Puzzle {
+        Puzzle {
+            cave: Cave::new(),
+            pushes,
+            block_count: 0,
+            push_count: 0,
+        }
+    }
+
+    fn drop_block(&mut self) {
+        let mut block = Block::new(self.block_count, self.cave.height() + 3);
+        self.block_count += 1;
+
+        loop {
+            let next_push = self.pushes.get(self.push_count);
+            self.push_count += 1;
+
+            block = block.push(next_push, &self.cave);
+            if let Ok(fallen) = block.fall(&self.cave) {
+                block = fallen;
+            } else {
+                self.cave.merge_block(&block);
+                break;
+            }
+        }
+    }
+
+    fn combination_count(&self) -> usize {
+        Block::TYPE_COUNT * self.pushes.0.len()
+    }
+
+    fn current_combination(&self) -> usize {
+        let block_index = self.block_count % Block::TYPE_COUNT;
+        let push_index = self.push_count % self.pushes.0.len();
+        block_index * self.pushes.0.len() + push_index
+    }
 }
 
 impl Pushes {
@@ -167,8 +253,10 @@ impl Display for Line {
 }
 
 impl Block {
+    const TYPE_COUNT: usize = 5;
+
     fn new(index: usize, height: usize) -> Block {
-        let lines = match index % 5 {
+        let lines = match index % Self::TYPE_COUNT {
             0 => [
                 Line(0b0011110),
                 Line(0b0000000),
