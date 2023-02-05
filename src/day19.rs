@@ -48,41 +48,64 @@ pub fn run() {
 
     let result = part1(&puzzle);
     println!("Result (part 1): {result}");
+
+    let result = part2(&puzzle);
+    println!("Result (part 2): {result}");
 }
 
 fn part1(puzzle: &Puzzle) -> usize {
-    let mut result = 0;
+    puzzle
+        .blueprints
+        .iter()
+        .map(|bp| bp.id * max_geodes(&bp, 24))
+        .sum()
+}
 
-    for blueprint in puzzle.blueprints.iter() {
-        let mut simulations = vec![
-            Simulation::new(&blueprint, Res::Ore),
-            Simulation::new(&blueprint, Res::Clay),
-        ];
-        let mut new_simulations = vec![];
+fn part2(puzzle: &Puzzle) -> usize {
+    puzzle
+        .blueprints
+        .iter()
+        .take(3)
+        .map(|bp| max_geodes(&bp, 32))
+        .fold(1, |a, b| a * b)
+}
 
-        for _minute in 1..=24 {
-            for simulation in simulations.iter_mut() {
-                simulation.collect_resources();
-                simulation.end_building_robots();
+fn max_geodes(blueprint: &Blueprint, minutes: usize) -> usize {
+    let mut simulations = vec![
+        Simulation::new(&blueprint, Res::Ore),
+        Simulation::new(&blueprint, Res::Clay),
+    ];
 
-                if simulation.can_build_robot(simulation.next_robot) {
-                    simulation.start_building_robot(simulation.next_robot);
-                    simulation.branch(&mut new_simulations);
-                }
+    let mut new_simulations = vec![];
+
+    for minute in 0..minutes {
+        for simulation in simulations.iter_mut() {
+            simulation.collect_resources();
+            simulation.end_building_robots();
+
+            if simulation.can_build_robot(simulation.next_robot) {
+                simulation.start_building_robot(simulation.next_robot);
+                simulation.branch(&mut new_simulations);
             }
-
-            simulations.append(&mut new_simulations);
         }
 
-        let best_sim = simulations
+        simulations.append(&mut new_simulations);
+
+        let remaining_minutes = minutes - minute - 1;
+
+        let max_possible_score = simulations
             .iter()
-            .max_by_key(|s| s.resources[Res::Geode].count)
+            .map(|s| s.max_possible_geodes(remaining_minutes))
+            .max()
             .unwrap();
 
-        result += best_sim.blueprint.id * best_sim.resources[Res::Geode].count;
+        simulations.retain(|s| {
+            // This should have worked without the scaling factor, I don't understand why it doesn't :'(
+            s.max_possible_geodes(remaining_minutes) >= (max_possible_score as f64 * 0.8) as usize
+        });
     }
 
-    result
+    simulations.iter().map(|s| s.geode_count()).max().unwrap()
 }
 
 impl<'a> Simulation<'a> {
@@ -117,6 +140,14 @@ impl<'a> Simulation<'a> {
         }
 
         self.next_robot = Res::Geode;
+    }
+
+    fn geode_count(&self) -> usize {
+        self.resources[Res::Geode].count
+    }
+
+    fn max_possible_geodes(&self, minutes: usize) -> usize {
+        self.resources[Res::Geode].max_possible_count(minutes)
     }
 
     fn start_building_robot(&mut self, kind: Res) {
@@ -216,6 +247,18 @@ impl ResourceStatus {
     fn end_building_robots(&mut self) {
         self.robots += self.pending_robots;
         self.pending_robots = 0;
+    }
+
+    fn max_possible_count(&self, minutes: usize) -> usize {
+        let mut result = self.count;
+        let mut robots = self.robots;
+
+        for _minute in 0..minutes {
+            result += robots;
+            robots += 1;
+        }
+
+        result
     }
 }
 
