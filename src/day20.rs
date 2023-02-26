@@ -6,6 +6,7 @@ struct Number {
     orig_index: usize,
 }
 
+#[derive(Clone)]
 struct File {
     numbers: Vec<Number>,
 }
@@ -14,17 +15,28 @@ struct File {
 pub fn run() {
     let file = File::parse(get_input_lines());
 
-    let result = part1(file);
+    let result = part1(file.clone());
     println!("Result (part 1): {result}");
+
+    let result = part2(file);
+    println!("Result (part 2): {result}");
 }
 
 fn part1(mut file: File) -> isize {
     file.mix();
+    file.get_result()
+}
 
-    let zero_index = file.index_of_value(0);
-    file.get_value_at(zero_index + 1000)
-        + file.get_value_at(zero_index + 2000)
-        + file.get_value_at(zero_index + 3000)
+fn part2(mut file: File) -> isize {
+    for mut n in file.numbers.iter_mut() {
+        n.value *= 811589153;
+    }
+
+    for _ in 0..10 {
+        file.mix()
+    }
+
+    file.get_result()
 }
 
 impl File {
@@ -55,6 +67,13 @@ impl File {
             numbers.remove(index);
             numbers.insert(new_index, number);
         }
+    }
+
+    fn get_result(&self) -> isize {
+        let zero_index = self.index_of_value(0);
+        self.get_value_at(zero_index + 1000)
+            + self.get_value_at(zero_index + 2000)
+            + self.get_value_at(zero_index + 3000)
     }
 
     fn index_of_value(&self, value: isize) -> usize {
